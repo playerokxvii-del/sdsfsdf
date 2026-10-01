@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 
 from aiogram import Bot, F, Router
-from aiogram.filters import CommandObject
+from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -183,12 +183,18 @@ async def deal_direct(message: Message, state: FSMContext, session):
 
 # ---------- Deep link t.me/bot?start=deal_XXXX ----------
 
-@router.message(CommandObject("start"))
+@router.message(CommandStart(deep_link=True))
 async def start_with_deal(message: Message, command: CommandObject, state: FSMContext,
                           session, bot: Bot):
-    """Обрабатывает /start deal_CODE — открывает карточку сделки."""
+    """Обрабатывает /start deal_CODE — открывает карточку сделки.
+
+    Регистрация и обычный /start обрабатываются ранее (см. run.py).
+    Если deep-link не распознан — показываем главное меню (тупиков нет).
+    """
     if not command or not command.args or not command.args.startswith("deal_"):
-        return None  # обычный /start обработается ранее (priority)
+        from bot.handlers.common import menu_screen
+        await menu_screen(message, session, state)
+        return
     code = command.args.removeprefix("deal_").upper()
     deal = await dsvc.get_deal_by_code(session, code)
     if deal is None:

@@ -98,3 +98,35 @@ class AccessCheckMiddleware(BaseMiddleware):
                 await event.answer(text, reply_markup=kb, parse_mode="HTML")
         except Exception:
             log.exception("deny message failed")
+
+
+class ErrorAnswerMiddleware(BaseMiddleware):
+    """Перехватывает необработанные исключения: логирует без секретов,
+    показывает пользователю понятный экран ошибки (без traceback)."""
+
+    async def __call__(self, handler, event: TelegramObject, data: dict):
+        try:
+            return await handler(event, data)
+        except Exception as e:
+            user_id = None
+            if isinstance(event, (Message, CallbackQuery)) and event.from_user:
+                user_id = event.from_user.id
+            # Логируем только тип и сообщение исключения — токены/секреты не попадают.
+            log.error("Unhandled error on %s (user=%s): %s: %s",
+                      event.__class__.__name__, user_id,
+                      e.__class__.__name__, str(e)[:300])
+            from bot.keyboard.kbs import inl
+            from bot.utils.texts import err_text
+            kb = inl([("🏠 В МЕНЮ", "nav:menu")])
+            try:
+                if isinstance(event, CallbackQuery):
+                    await event.bot.send_message(
+                        event.message.chat.id, err_text(),
+                        reply_markup=kb, parse_mode="HTML")
+                    await event.answer("⚠️ Произошла ошибка")
+                elif isinstance(event, Message):
+                    await event.answer(err_text(), reply_markup=kb,
+                                       parse_mode="HTML")
+            except Exception:
+                log.exception("error notify failed")
+            return True

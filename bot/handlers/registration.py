@@ -31,7 +31,7 @@ async def bot_username(bot: Bot) -> str:
     return me.username or "playerok_bot"
 
 
-@router.message(CommandStart())
+@router.message(CommandStart(deep_link=False))
 async def cmd_start(message: Message, state: FSMContext, session, bot: Bot):
     await state.clear()
     user = await usvc.get_user(session, message.from_user.id)
