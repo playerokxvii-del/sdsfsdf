@@ -356,6 +356,11 @@ def status_line(status: str) -> str:
     return f"{STATUS_EMOJIS.get(status, 'ℹ️')} <b>{STATUS_LABELS.get(status, status)}</b>"
 
 
+def status_line_plain(status: str) -> str:
+    """Статус без HTML-тегов (для подстановки внутрь <b>...</b>)."""
+    return f"{STATUS_EMOJIS.get(status, 'ℹ️')} {STATUS_LABELS.get(status, status)}"
+
+
 def rating_text(user) -> str:
     if user.reviews_count == 0:
         return "Новый пользователь"
